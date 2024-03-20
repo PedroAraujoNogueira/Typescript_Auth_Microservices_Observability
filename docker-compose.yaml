@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+
+  app-node:
+    build: 
+      context: api
+    container_name: api-skeelo
+    entrypoint: dockerize -wait tcp://db:3306 -timeout 20s docker-entrypoint.sh
+    command: bash -c 'npm run dev' 
+    ports:
+      - 3333:3333
+    volumes:
+      - ./api:/usr/app
+    environment:
+     - PORT=3333
+     - HOST=0.0.0.0
+     - HOST_DB=db-mysql
+     - USERNAME_DB=root
+     - PASSWORD_DB=root
+    networks:
+      - skeelonet
+    tty: true
+    depends_on: 
+      - db
+    labels:
+      filebeat_collector: true
+
+  db:
+    image: mysql:5.7
+    command: --innodb-use-native-aio=0 
+    container_name: db-mysql
+    restart: always
+    tty: true
+    volumes:
+      - ./mysql:/var/lib/mysql
+    environment:
+     - MYSQL_DATABASE=skeelo
+     - MYSQL_ROOT_PASSWORD=root
+    networks:
+      - skeelonet
+
+  rabbitmq:
+    image: rabbitmq:3.8-management-alpine
+    ports: 
+      - 15672:15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+
+networks:
+  skeelonet: 
+    driver: bridge
+    
